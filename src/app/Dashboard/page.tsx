@@ -1,7 +1,11 @@
 'use client';
 
-import { Button, Modal, Checkbox, Label, TextInput, FileInput, Dropdown } from 'flowbite-react';
+import { Button, Modal, Label, Accordion ,TextInput, FileInput, Dropdown, ListGroup } from 'flowbite-react';
 import React, { useState } from 'react';
+// the @ when pathing through our folder structre repsresnts our root foolder
+import BlogEntries from '@/utils/BlogEntries.json'
+import { IBlogItems } from '@/Interfaces/interface';
+import NavbarComponent from '../Components/NavbarComponent';
 
 
 
@@ -9,6 +13,7 @@ import React, { useState } from 'react';
 const Dashboard = () => {
 
     const [openModal, setOpenModal] = useState(false);
+    const [blogItems, setBlogItems] = useState<IBlogItems[]>(BlogEntries);
 
     // forms
     // description, tags, categories, title, and Image
@@ -21,12 +26,28 @@ const Dashboard = () => {
 
     const handleShow = () => {
         setOpenModal(true);
-
+        setEditBool(false);
         setCategories("");
         setTitle("");
         setTags("");
         setDescription("");
         setImage("");
+    }
+
+    //Booleans
+    const [editBool, setEditBool] = useState<boolean>(true);
+
+    const handlePublish = () => {
+      setOpenModal(false);
+    }
+
+    const handleEdit = () => {
+      setEditBool(true);
+      setOpenModal(true);
+    }
+    
+    const handleDelete = () => {
+
     }
 
     const handleTitle = (e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value);
@@ -49,12 +70,14 @@ const Dashboard = () => {
 
 
   return (
+    <>
+      <NavbarComponent />
     <div className='flex min-h-screen flex-col p-24'>
         <div className='flex flex-col items-center mb-10'>
       <h1 className='text-3xl' >This is Dashboard</h1>
       <Button onClick={handleShow}>Add Blog Item</Button>
       <Modal show={openModal} onClose={() => setOpenModal(false)}>
-        <Modal.Header>Add Blog Item</Modal.Header>
+        <Modal.Header>{editBool ? 'Edit' : 'Add'}Blog Item</Modal.Header>
         <Modal.Body>
         <form className="flex max-w-md flex-col gap-4">
       <div>
@@ -91,13 +114,67 @@ const Dashboard = () => {
     </form>
         </Modal.Body>
         <Modal.Footer>
-          <Button onClick={() => setOpenModal(false)}>Save and Publish</Button>
-          <Button color="gray" onClick={() => setOpenModal(false)}>Save</Button>
+          <Button onClick={handlePublish}>Save and Publish</Button>
+          <Button color="gray" onClick={handlePublish}>Save</Button>
           <Button color="gray" onClick={() => setOpenModal(false)}>Cancel</Button>
         </Modal.Footer>
       </Modal>
+
+    <Accordion alwaysOpen >
+      <Accordion.Panel>
+        <Accordion.Title>Published Blog Items</Accordion.Title>
+        <Accordion.Content>
+         <ListGroup className='w-484' >
+          {
+            blogItems.map((item, idx) => {
+              return (
+                <div key={idx}>
+                  {
+                    item.isPublished && <div className='flex flex-col p-10' >
+                      <h1 className='text-2xl' >{item.title}</h1>
+                      <div className='flex flex-row space-x-3' >
+                        <Button color='blue' onClick={handleEdit} >Edit</Button>
+                        <Button color='yellow' onClick={handlePublish} >Unpublish</Button>
+                        <Button color='red' onClick={handleDelete} >Delete</Button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              )}
+            )
+          }
+         </ListGroup>
+        </Accordion.Content>
+      </Accordion.Panel>
+      <Accordion.Panel>
+        <Accordion.Title>Unpublished Blog Items</Accordion.Title>
+        <Accordion.Content>
+        <ListGroup className='w-484' >
+          {
+            blogItems.map((item, idx) => {
+              return (
+                <div key={idx}>
+                  {
+                    !item.isPublished && <div className='flex flex-col p-10' >
+                      <h1 className='text-2xl' >{item.title}</h1>
+                      <div className='flex flex-row space-x-3' >
+                        <Button color='blue' onClick={handleEdit} >Edit</Button>
+                        <Button color='yellow' onClick={handlePublish} >Publish</Button>
+                        <Button color='red' onClick={handleDelete} >Delete</Button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              )}
+            )
+          }
+         </ListGroup>
+        </Accordion.Content>
+      </Accordion.Panel>
+    </Accordion>
       </div>
     </div>
+    </>
   )
 }
 

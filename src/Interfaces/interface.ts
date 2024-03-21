@@ -1,6 +1,6 @@
 export interface IBlogItems {
     id: number
-    userId: number
+    userID: number
     publishedName: string
     date: string
     title: string
