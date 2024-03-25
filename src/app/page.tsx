@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Button, Checkbox, Label, TextInput } from 'flowbite-react';
 import { useRouter } from "next/navigation";
+import { createAccount, getLoggedInUserData, login } from "@/utils/DataService";
+import { IToken } from "@/Interfaces/interface";
 
 
 // By default next js components our server side (Server side components cannot have useStates in them)
@@ -25,7 +27,7 @@ export default function Home() {
     setSwitchBool(!switchBool);
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Putting our user data inside of an object so we can put it in our post fetch
     let userData = {
       username: username,
@@ -34,10 +36,24 @@ export default function Home() {
 
       if(switchBool) {
         // create account logic in here
+        createAccount(userData);
         
       }else{
         // login logic in here
-        router.push('/Dashboard');
+        let token: IToken = await login(userData)
+        console.log(token);
+
+        // check to see if logged in
+        if(token.token != null){
+
+          localStorage.setItem("Token", token.token)
+          getLoggedInUserData(username);
+          router.push('/Dashboard');
+
+        }else{
+          alert("Login Failed");
+        }
+
       }
 
   }

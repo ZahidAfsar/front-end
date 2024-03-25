@@ -1,11 +1,14 @@
 'use client';
 
 import { Button, Modal, Label, Accordion ,TextInput, FileInput, Dropdown, ListGroup } from 'flowbite-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 // the @ when pathing through our folder structre repsresnts our root foolder
 import BlogEntries from '@/utils/BlogEntries.json'
 import { IBlogItems } from '@/Interfaces/interface';
 import NavbarComponent from '../Components/NavbarComponent';
+import { useRouter } from 'next/navigation';
+import { checkToken, getBlogItemsByUserId, loggedinData } from '@/utils/DataService';
+import { log } from 'console';
 
 
 
@@ -13,7 +16,7 @@ import NavbarComponent from '../Components/NavbarComponent';
 const Dashboard = () => {
 
     const [openModal, setOpenModal] = useState(false);
-    const [blogItems, setBlogItems] = useState<IBlogItems[]>(BlogEntries);
+    const [blogItems, setBlogItems] = useState<IBlogItems[]>([]);
 
     // forms
     // description, tags, categories, title, and Image
@@ -23,6 +26,9 @@ const Dashboard = () => {
     const [tags, setTags] = useState<string>("");
     const [categories, setCategories] = useState<string>("");
     const [image, setImage] = useState<any>("");
+    const [blogUserId, setBlogUserId] = useState<number>(0);
+    const [publisherName, setPublisherName] = useState<string>("")
+    const [blogId, setBlogId] = useState<number>(0);
 
     const handleShow = () => {
         setOpenModal(true);
@@ -36,6 +42,31 @@ const Dashboard = () => {
 
     //Booleans
     const [editBool, setEditBool] = useState<boolean>(true);
+
+    // useRouter should be from next/navigation
+    let router = useRouter()
+
+    // this useEffect will grab the users information as well as their blog info,
+    // Will perform a check if users is logged in if not it will take them to login page
+    useEffect(() => {
+      // Async function beacause we are calling getBlogItemsById Fetch
+      const getLoggedInData = async () => {
+        // Storing our user info in a variable
+        const loggedIn = loggedinData();
+        let userBlogItems = await getBlogItemsByUserId(loggedIn.id);
+        // setting our user info / fetched data inside of our state variables
+        setBlogUserId(loggedIn.id)
+        setPublisherName(loggedIn.username);
+        setBlogItems(userBlogItems);
+      }
+      // checks if you have a token in local sotrage if so get user info else go back to login
+      if(checkToken()){
+        getLoggedInData()
+      }else{
+        router.push('/');
+      }
+
+    }, [])
 
     const handlePublish = () => {
       setOpenModal(false);
@@ -126,7 +157,7 @@ const Dashboard = () => {
         <Accordion.Content>
          <ListGroup className='w-484' >
           {
-            blogItems.map((item, idx) => {
+            blogItems && blogItems.map((item, idx) => {
               return (
                 <div key={idx}>
                   {
@@ -151,7 +182,7 @@ const Dashboard = () => {
         <Accordion.Content>
         <ListGroup className='w-484' >
           {
-            blogItems.map((item, idx) => {
+           blogItems && blogItems.map((item, idx) => {
               return (
                 <div key={idx}>
                   {
