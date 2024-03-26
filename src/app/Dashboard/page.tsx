@@ -7,7 +7,7 @@ import BlogEntries from '@/utils/BlogEntries.json'
 import { IBlogItems } from '@/Interfaces/interface';
 import NavbarComponent from '../Components/NavbarComponent';
 import { useRouter } from 'next/navigation';
-import { checkToken, getBlogItemsByUserId, loggedinData } from '@/utils/DataService';
+import { addBlogItems, checkToken, getBlogItemsByUserId, loggedinData, updateBlogItems } from '@/utils/DataService';
 import { log } from 'console';
 
 
@@ -16,7 +16,7 @@ import { log } from 'console';
 const Dashboard = () => {
 
     const [openModal, setOpenModal] = useState(false);
-    const [blogItems, setBlogItems] = useState<IBlogItems[]>([]);
+    const [blogItems, setBlogItems] = useState<IBlogItems[]>();
 
     // forms
     // description, tags, categories, title, and Image
@@ -29,6 +29,38 @@ const Dashboard = () => {
     const [blogUserId, setBlogUserId] = useState<number>(0);
     const [publisherName, setPublisherName] = useState<string>("")
     const [blogId, setBlogId] = useState<number>(0);
+
+    const handleSave = async (e: React.MouseEvent<HTMLButtonElement>) => {
+      let item: IBlogItems = {
+        id: blogId,
+        userID: blogUserId,
+        publishedName: publisherName,
+        description: description,
+        date: new Date().toString(),
+        title: title,
+        image: image,
+        tags: tags,
+        categories: categories,
+        isPublished: e.currentTarget.textContent === "Save and Publish" ? true : false,
+        isDeleted: false
+      }
+      let result = false;
+
+      if(editBool){
+        // if edit bool is true we are updating our blog item
+        // if it is false we are should be adding a new item
+        result = await updateBlogItems(item);
+      }else{
+        result = await addBlogItems(item);
+      }
+      // if our blogs updated / add we will call our blog items again from our api
+      if(result){
+        let userBlogItems: IBlogItems[] = await getBlogItemsByUserId(blogUserId);
+        let filteredBlogItems = userBlogItems.filter(item => item.isDeleted === false)
+        setBlogItems(filteredBlogItems);
+      }
+      setOpenModal(false);
+    }
 
     const handleShow = () => {
         setOpenModal(true);
@@ -53,11 +85,12 @@ const Dashboard = () => {
       const getLoggedInData = async () => {
         // Storing our user info in a variable
         const loggedIn = loggedinData();
-        let userBlogItems = await getBlogItemsByUserId(loggedIn.id);
+        let userBlogItems: IBlogItems[] = await getBlogItemsByUserId(loggedIn.userId);
+        let filteredBlogItems = userBlogItems.filter(item => item.isDeleted === false)
         // setting our user info / fetched data inside of our state variables
-        setBlogUserId(loggedIn.id)
-        setPublisherName(loggedIn.username);
-        setBlogItems(userBlogItems);
+        setBlogUserId(loggedIn.userId);
+        setPublisherName(loggedIn.publisherName);
+        setBlogItems(filteredBlogItems);
       }
       // checks if you have a token in local sotrage if so get user info else go back to login
       if(checkToken()){
@@ -68,17 +101,40 @@ const Dashboard = () => {
 
     }, [])
 
-    const handlePublish = () => {
-      setOpenModal(false);
+    const handlePublish = async (item: IBlogItems) => {
+      item.isPublished = !item.isPublished
+      let result = await updateBlogItems(item)
+
+      if(result){
+        const loggedIn = loggedinData()
+        let userBlogItems: IBlogItems[] = await getBlogItemsByUserId(loggedIn.userId);
+        let filteredBlogItems = userBlogItems.filter(item => item.isDeleted === false);
+        setBlogItems(filteredBlogItems);
+      }
     }
 
-    const handleEdit = () => {
+    const handleEdit = (item: IBlogItems) => {
       setEditBool(true);
       setOpenModal(true);
+      setBlogId(item.id);
+      setPublisherName(item.publishedName);
+        setCategories(item.categories);
+        setTitle(item.title);
+        setTags(item.tags);
+        setDescription(item.description);
+        setImage(item.image);
     }
     
-    const handleDelete = () => {
+    const handleDelete = async (item: IBlogItems) => {
+      item.isDeleted = !item.isDeleted
+      let result = await updateBlogItems(item)
 
+      if(result){
+        const loggedIn = loggedinData()
+        let userBlogItems: IBlogItems[] = await getBlogItemsByUserId(loggedIn.userId);
+        let filteredBlogItems = userBlogItems.filter(item => item.isDeleted === false);
+        setBlogItems(filteredBlogItems);
+      }
     }
 
     const handleTitle = (e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value);
@@ -145,8 +201,8 @@ const Dashboard = () => {
     </form>
         </Modal.Body>
         <Modal.Footer>
-          <Button onClick={handlePublish}>Save and Publish</Button>
-          <Button color="gray" onClick={handlePublish}>Save</Button>
+          <Button onClick={handleSave}>Save and Publish</Button>
+          <Button color="gray" onClick={handleSave}>Save</Button>
           <Button color="gray" onClick={() => setOpenModal(false)}>Cancel</Button>
         </Modal.Footer>
       </Modal>
@@ -164,9 +220,9 @@ const Dashboard = () => {
                     item.isPublished && <div className='flex flex-col p-10' >
                       <h1 className='text-2xl' >{item.title}</h1>
                       <div className='flex flex-row space-x-3' >
-                        <Button color='blue' onClick={handleEdit} >Edit</Button>
-                        <Button color='yellow' onClick={handlePublish} >Unpublish</Button>
-                        <Button color='red' onClick={handleDelete} >Delete</Button>
+                        <Button color='blue' onClick={() => handleEdit(item)} >Edit</Button>
+                        <Button color='yellow' onClick={() => handlePublish(item)} >Unpublish</Button>
+                        <Button color='red' onClick={() => handleDelete(item)} >Delete</Button>
                       </div>
                     </div>
                   }
@@ -189,9 +245,9 @@ const Dashboard = () => {
                     !item.isPublished && <div className='flex flex-col p-10' >
                       <h1 className='text-2xl' >{item.title}</h1>
                       <div className='flex flex-row space-x-3' >
-                        <Button color='blue' onClick={handleEdit} >Edit</Button>
-                        <Button color='yellow' onClick={handlePublish} >Publish</Button>
-                        <Button color='red' onClick={handleDelete} >Delete</Button>
+                        <Button color='blue' onClick={() => handleEdit(item)} >Edit</Button>
+                        <Button color='yellow' onClick={() => handlePublish(item)} >Publish</Button>
+                        <Button color='red' onClick={() => handleDelete(item)} >Delete</Button>
                       </div>
                     </div>
                   }

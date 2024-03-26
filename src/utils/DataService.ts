@@ -1,7 +1,7 @@
 import { IBlogItems, IToken, IUserData, IUserInfo } from "@/Interfaces/interface";
 import { headers } from "next/headers";
 
-const url = "http://localhost:5039";
+const url = "https://myblogapi.azurewebsites.net";
 
 let userData: IUserData
 
